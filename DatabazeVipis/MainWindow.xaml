@@ -1,0 +1,27 @@
+﻿<Window x:Class="DatabazeVipis.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DatabazeVipis"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid Margin="12">
+        <DataGrid x:Name="dgStudents"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              HeadersVisibility="Column"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID"        Binding="{Binding Id}"        Width="Auto"/>
+                <DataGridTextColumn Header="Jméno"     Binding="{Binding FirstName}" Width="*"/>
+                <DataGridTextColumn Header="Příjmení"  Binding="{Binding LastName}"  Width="*"/>
+                <DataGridTextColumn Header="Ročník"    Binding="{Binding Year}"      Width="Auto"/>
+                <DataGridTextColumn Header="E‑mail"    Binding="{Binding Email}"     Width="2*"/>
+                <DataGridTextColumn Header="Vytvořeno" Binding="{Binding CreatedAt}" Width="Auto"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+
+</Window>
