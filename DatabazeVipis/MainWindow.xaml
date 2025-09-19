@@ -7,7 +7,15 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid Margin="12">
+        <!-- 2 řádky: data + formulář -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- TVŮJ stávající DataGrid (jen mu přidej Grid.Row="0") -->
         <DataGrid x:Name="dgStudents"
+              Grid.Row="0"
               AutoGenerateColumns="False"
               IsReadOnly="True"
               HeadersVisibility="Column"
@@ -22,6 +30,40 @@
                 <DataGridTextColumn Header="Vytvořeno" Binding="{Binding CreatedAt}" Width="Auto"/>
             </DataGrid.Columns>
         </DataGrid>
-    </Grid>
 
+        <!-- NOVÝ formulář pro přidání studenta -->
+        <GroupBox Grid.Row="1" Header="Přidat nového studenta" Margin="0,10,0,0">
+            <Grid Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Jméno:"    Margin="0,0,8,6" VerticalAlignment="Center"/>
+                <TextBox   Grid.Row="0" Grid.Column="1" x:Name="tbFirstName" Margin="0,0,0,6"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Příjmení:" Margin="0,0,8,6" VerticalAlignment="Center"/>
+                <TextBox   Grid.Row="1" Grid.Column="1" x:Name="tbLastName"  Margin="0,0,0,6"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Ročník:"   Margin="0,0,8,6" VerticalAlignment="Center"/>
+                <TextBox   Grid.Row="2" Grid.Column="1" x:Name="tbYear"      Margin="0,0,0,6"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="E‑mail:"   Margin="0,0,8,0"  VerticalAlignment="Center"/>
+                <TextBox   Grid.Row="3" Grid.Column="1" x:Name="tbEmail"     Margin="0,0,8,0"/>
+
+                <Button Grid.Row="0" Grid.RowSpan="4" Grid.Column="2"
+                    x:Name="btnAddStudent"
+                    Content="Přidat"
+                    Padding="16,6"
+                    Click="btnAddStudent_Click"/>
+            </Grid>
+        </GroupBox>
+    </Grid>
 </Window>
