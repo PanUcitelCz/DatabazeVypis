@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DatabazeVipis.Data
 {
@@ -11,7 +9,6 @@ namespace DatabazeVipis.Data
     {
         public DbSet<Student> Students => Set<Student>();
 
-        // Připojení na LocalDB (součást VS): (localdb)\MSSQLLocalDB
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -24,12 +21,11 @@ namespace DatabazeVipis.Data
             }
         }
 
-        /// <summary>Naplnění 10 záznamy při prázdné tabulce.</summary>
         public void SeedIfEmpty()
         {
             if (!Students.Any())
             {
-                var initial = new List<Student>
+                List<Student> initial = new List<Student>
                 {
                     new Student { FirstName="Jan",   LastName="Novák",    Year=1, Email="jan.novak@example.com" },
                     new Student { FirstName="Petr",  LastName="Svoboda",  Year=2, Email="petr.svoboda@example.com" },
@@ -42,6 +38,7 @@ namespace DatabazeVipis.Data
                     new Student { FirstName="Jana",  LastName="Horáková", Year=3, Email="jana.horakova@example.com" },
                     new Student { FirstName="Filip", LastName="Král",     Year=1, Email="filip.kral@example.com" }
                 };
+
                 Students.AddRange(initial);
                 SaveChanges();
             }

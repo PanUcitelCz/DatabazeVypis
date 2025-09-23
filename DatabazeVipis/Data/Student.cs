@@ -1,18 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DatabazeVipis.Data
 {
     public class Student
     {
-        public int Id { get; set; }                        // PK (auto-increment)
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // IdENTITY v SQL – auto-increment
+        public int Id { get; set; }
+
+        [Required]
+        [MaxLength(100)]
         public string FirstName { get; set; } = string.Empty;
-        public string LastName  { get; set; } = string.Empty;
-        public int Year { get; set; }                      // např. 1..3
+
+        [Required]
+        [MaxLength(100)]
+        public string LastName { get; set; } = string.Empty;
+
+        [Range(1, 6, ErrorMessage = "Ročník musí být v intervalu 1–6.")]
+        public int Year { get; set; }
+
+        [MaxLength(200)]
         public string Email { get; set; } = string.Empty;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
