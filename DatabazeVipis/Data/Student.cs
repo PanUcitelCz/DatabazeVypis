@@ -1,27 +1,30 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using PropertyChanged; // díky NuGet balíčku PropertyChanged.Fody
 
 namespace DatabazeVipis.Data
 {
+    // Fody zařídí INotifyPropertyChanged "magicky" při překladu
+    [AddINotifyPropertyChangedInterface]
     public class Student
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // IdENTITY v SQL – auto-increment
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // -> auto-increment
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(100)]
+        [StringLength(100)]
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
+        [StringLength(100)]
         public string LastName { get; set; } = string.Empty;
 
-        [Range(1, 6, ErrorMessage = "Ročník musí být v intervalu 1–6.")]
-        public int Year { get; set; }
+        [Range(1, 6)]
+        public int Year { get; set; } // např. 1..6
 
-        [MaxLength(200)]
+        [StringLength(200)]
         public string Email { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

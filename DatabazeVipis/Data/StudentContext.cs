@@ -13,6 +13,7 @@ namespace DatabazeVipis.Data
         {
             if (!optionsBuilder.IsConfigured)
             {
+                // LocalDB (součást VS). Databáze se vytvoří automaticky (EnsureCreated).
                 optionsBuilder.UseSqlServer(
                     "Data Source=(localdb)\\MSSQLLocalDB;" +
                     "Initial Catalog=StudentDbDemo;" +
@@ -21,11 +22,19 @@ namespace DatabazeVipis.Data
             }
         }
 
+        /// <summary>První běh: vytvoření DB + naplnění ukázkovými daty.</summary>
+        public void EnsureCreatedAndSeed()
+        {
+            Database.EnsureCreated();
+            SeedIfEmpty();
+        }
+
+        /// <summary>Naplnění 10 záznamy při prázdné tabulce.</summary>
         public void SeedIfEmpty()
         {
             if (!Students.Any())
             {
-                List<Student> initial = new List<Student>
+                var initial = new List<Student>
                 {
                     new Student { FirstName="Jan",   LastName="Novák",    Year=1, Email="jan.novak@example.com" },
                     new Student { FirstName="Petr",  LastName="Svoboda",  Year=2, Email="petr.svoboda@example.com" },

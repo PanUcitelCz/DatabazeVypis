@@ -1,91 +1,56 @@
 ﻿using DatabazeVipis.Data;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using Microsoft.EntityFrameworkCore; // Bez tohoto nám nepojede 
-
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace DatabazeVipis
 {
     public partial class MainWindow : Window
     {
-        private StudentContext _dbContext;
-        private ObservableCollection<Student> _students;
+        // Dlouho-žijící kontext pro sledování změn i během editace v gridu
+        private readonly StudentContext _db = new StudentContext();
+
+        // Kolekce napojená na DataGrid (živé aktualizace v UI)
+        private readonly ObservableCollection<Student> _students = new ObservableCollection<Student>();
+
+        // Pohled kvůli řazení (podle Id vzestupně)
         private ICollectionView _studentsView;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            _dbContext = new StudentContext();
-            _dbContext.Database.EnsureCreated();
-            _dbContext.SeedIfEmpty();
+            // Vytvoření DB + seed na prvním běhu
+            _db.EnsureCreatedAndSeed();
 
-            LoadData();
-            HookSelectionChanged();
-        }
-
-        private void LoadData()
-        {
-            // Načteme TRACKED entity (žádné AsNoTracking) → inline editace v DataGridu se uloží přes SaveChanges().
-            var list = _dbContext.Students
-                                 .OrderBy(s => s.Id)   // řazení načtených
-                                 .ToList();
-
-            _students = new ObservableCollection<Student>(list);
-            StudentsGrid.ItemsSource = _students;
-
-            // Primární řazení view podle Id (aby po přidání a uložení záznam "skočil" na správné místo).
-            _studentsView = CollectionViewSource.GetDefaultView(StudentsGrid.ItemsSource);
-            if (_studentsView != null)
+            // Naplnění kolekce z kontextu (bez AsNoTracking, chceme editovat a ukládat)
+            foreach (Student s in _db.Students.OrderBy(x => x.Id).ToList())
             {
-                _studentsView.SortDescriptions.Clear();
-                _studentsView.SortDescriptions.Add(new SortDescription(nameof(Student.Id), ListSortDirection.Ascending));
+                _students.Add(s);
             }
+
+            // Řazení v UI podle Id
+            _studentsView = CollectionViewSource.GetDefaultView(_students);
+            _studentsView.SortDescriptions.Clear();
+            _studentsView.SortDescriptions.Add(new SortDescription(nameof(Student.Id), ListSortDirection.Ascending));
+
+            StudentsGrid.ItemsSource = _studentsView;
         }
 
-        private void HookSelectionChanged()
+        private void BtnAddStudent_Click(object sender, RoutedEventArgs e)
         {
-            StudentsGrid.SelectionChanged += (s, e) =>
-            {
-                Student selected = StudentsGrid.SelectedItem as Student;
-                if (selected == null)
-                {
-                    TxtId.Text = string.Empty;
-                    TxtFirstName.Text = string.Empty;
-                    TxtLastName.Text = string.Empty;
-                    TxtYear.Text = string.Empty;
-                    TxtEmail.Text = string.Empty;
-                    return;
-                }
-
-                TxtId.Text = selected.Id.ToString();
-                TxtFirstName.Text = selected.FirstName;
-                TxtLastName.Text = selected.LastName;
-                TxtYear.Text = selected.Year.ToString();
-                TxtEmail.Text = selected.Email;
-            };
-        }
-
-        private void BtnAdd_Click(object sender, RoutedEventArgs e)
-        {
+            // 1) Načti vstupy
             string firstName = (TxtFirstName.Text ?? string.Empty).Trim();
             string lastName = (TxtLastName.Text ?? string.Empty).Trim();
             string email = (TxtEmail.Text ?? string.Empty).Trim();
             string yearText = (TxtYear.Text ?? string.Empty).Trim();
 
+            // 2) Validace vstupů (co nejčitelněji)
             if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
             {
                 MessageBox.Show("Jméno i příjmení jsou povinné.", "Upozornění", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -94,47 +59,50 @@ namespace DatabazeVipis
 
             int year;
             bool parsed = int.TryParse(yearText, out year);
-            if (!parsed || year < 1 || year > 6)
+            if (parsed == false || year < 1 || year > 6)
             {
                 MessageBox.Show("Ročník zadej jako celé číslo v intervalu 1–6.", "Upozornění", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(email))
+            if (string.IsNullOrWhiteSpace(email) == false)
             {
-                bool exists = _dbContext.Students.Any(s => s.Email == email);
-                if (exists)
+                bool exists = _db.Students.Any(s => s.Email == email);
+                if (exists == true)
                 {
                     MessageBox.Show("Zadaný e‑mail už v databázi existuje.", "Upozornění", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
 
-            Student newStudent = new Student
+            // 3) Vytvoř entitu
+            Student newStudent = new Student();
+            newStudent.FirstName = firstName;
+            newStudent.LastName = lastName;
+            newStudent.Year = year;
+            newStudent.Email = email;
+            newStudent.CreatedAt = DateTime.UtcNow;
+
+            // 4) Přidej do kontextu (pro DB) i do kolekce (pro UI)
+            _db.Students.Add(newStudent);
+
+            try
             {
-                FirstName = firstName,
-                LastName = lastName,
-                Year = year,
-                Email = email,
-                CreatedAt = DateTime.UtcNow
-            };
+                _db.SaveChanges(); // vygeneruje nové Id
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Uložení do databáze se nezdařilo.\n\n" + ex, "Chyba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            // 1) do DB
-            _dbContext.Students.Add(newStudent);
-            _dbContext.SaveChanges();   // vygeneruje Id
-
-            // 2) do kolekce pro UI
             _students.Add(newStudent);
 
-            // Refresh řazení, vybrat a poscrollovat na nový záznam
-            if (_studentsView != null)
-            {
-                _studentsView.Refresh();
-            }
+            // 5) Vyber nově přidaného
             StudentsGrid.SelectedItem = newStudent;
             StudentsGrid.ScrollIntoView(newStudent);
 
-            // Reset formuláře
+            // 6) Vyčisti formulář
             TxtId.Text = string.Empty;
             TxtFirstName.Text = string.Empty;
             TxtLastName.Text = string.Empty;
@@ -144,55 +112,67 @@ namespace DatabazeVipis
             MessageBox.Show("Student byl přidán.", "Hotovo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void BtnDelete_Click(object sender, RoutedEventArgs e)
+        private void BtnSave_Click(object sender, RoutedEventArgs e)
         {
-            Student selected = StudentsGrid.SelectedItem as Student;
+            try
+            {
+                // Pro jistotu commitni rozeditovanou buňku/řádek
+                StudentsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
+                StudentsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+
+                bool hasChanges = _db.ChangeTracker.HasChanges();
+                if (hasChanges == false)
+                {
+                    MessageBox.Show("Žádné změny k uložení.", "Informace", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                _db.SaveChanges();
+                MessageBox.Show("Změny byly uloženy.", "Hotovo", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Nepodařilo se uložit změny.\n\n" + ex, "Chyba", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnDeleteSelected_Click(object sender, RoutedEventArgs e)
+        {
+            Student? selected = StudentsGrid.SelectedItem as Student;
             if (selected == null)
             {
                 MessageBox.Show("Nejprve vyber studenta v tabulce.", "Upozornění", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            MessageBoxResult result = MessageBox.Show(
-                $"Opravdu smazat studenta {selected.FirstName} {selected.LastName} (Id {selected.Id})?",
+            MessageBoxResult answer = MessageBox.Show(
+                "Opravdu smazat vybraného studenta?",
                 "Potvrzení",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
-            if (result != MessageBoxResult.Yes)
+            if (answer != MessageBoxResult.Yes)
             {
                 return;
             }
 
-            _dbContext.Students.Remove(selected);
-            _dbContext.SaveChanges();
+            _db.Students.Remove(selected);
+            try
+            {
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Smazání se nepodařilo.\n\n" + ex, "Chyba", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             _students.Remove(selected);
         }
 
-        private void BtnSave_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                _dbContext.SaveChanges();
-                if (_studentsView != null)
-                {
-                    _studentsView.Refresh();
-                }
-                MessageBox.Show("Změny byly uloženy.", "Uloženo", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Ukládání selhalo.\n" + ex.ToString(), "Chyba", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
         protected override void OnClosed(EventArgs e)
         {
-            if (_dbContext != null)
-            {
-                _dbContext.Dispose();
-            }
+            _db.Dispose();
             base.OnClosed(e);
         }
     }
