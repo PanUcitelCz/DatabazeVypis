@@ -95,6 +95,7 @@
 ### 1A) `Data/Student.cs` – verze **bez komentářů**
 
 ```csharp
+using PropertyChanged;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -131,6 +132,9 @@ namespace DatabazeVipis.Data
 ### 1B) `Data/Student.cs` – verze **s komentáři** (řádek po řádku)
 
 ```csharp
+// Přidáme using pro Fody-PropertyChanged – tento using zpřístupní atribut
+// [AddINotifyPropertyChangedInterface], který Fody při překladu „vstřikuje“
+using PropertyChanged;
 using System;                                                // datum/čas (CreatedAt)
 using System.ComponentModel.DataAnnotations;                 // datové anotace (Key, Required, Range...)
 using System.ComponentModel.DataAnnotations.Schema;          // [DatabaseGenerated]
@@ -365,98 +369,129 @@ namespace DatabazeVipis.Data
 ### 1G) `MainWindow.xaml.cs` – verze **bez komentářů** (pro ÚKOL 1)
 
 ```csharp
-using DatabazeVipis.Data;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
+using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using WpfApp1.Data;
 
-namespace DatabazeVipis
+namespace WpfApp1
 {
-    public partial class MainWindow : Window
-    {
-        private readonly StudentContext _db = new StudentContext();
-        private readonly ObservableCollection<Student> _students = new ObservableCollection<Student>();
-        private ICollectionView _studentsView;
-
-        public MainWindow()
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+        public partial class MainWindow : Window
         {
-            InitializeComponent();
+            private readonly StudentContext _db = new StudentContext();
+            private readonly ObservableCollection<Student> _students = new ObservableCollection<Student>();
+            private ICollectionView _studentsView;
 
-            _db.EnsureCreatedAndSeed();
+            public MainWindow()
+            {
+                InitializeComponent();
 
-            foreach (var s in _db.Students.OrderBy(x => x.Id).ToList())
-                _students.Add(s);
+                _db.EnsureCreatedAndSeed();
 
-            _studentsView = CollectionViewSource.GetDefaultView(_students);
-            _studentsView.SortDescriptions.Clear();
-            _studentsView.SortDescriptions.Add(new SortDescription(nameof(Student.Id), ListSortDirection.Ascending));
+                foreach (var s in _db.Students.OrderBy(x => x.Id).ToList())
+                    _students.Add(s);
 
-            StudentsGrid.ItemsSource = _studentsView;
+                _studentsView = CollectionViewSource.GetDefaultView(_students);
+                _studentsView.SortDescriptions.Clear();
+                _studentsView.SortDescriptions.Add(new SortDescription(nameof(Student.Id), ListSortDirection.Ascending));
+
+                StudentsGrid.ItemsSource = _studentsView;
+            }
+
+            protected override void OnClosed(System.EventArgs e)
+            {
+                _db.Dispose();
+                base.OnClosed(e);
+            }
         }
-
-        protected override void OnClosed(System.EventArgs e)
-        {
-            _db.Dispose();
-            base.OnClosed(e);
-        }
-    }
+    
 }
 ```
 
 ### 1H) `MainWindow.xaml.cs` – verze **s komentáři**
 
 ```csharp
-using DatabazeVipis.Data;                       // naše entita Student a DbContext
-using Microsoft.EntityFrameworkCore;            // EF Core (není zde nutné, ale běžně užitečné)
-using System.Collections.ObjectModel;           // ObservableCollection – upozorní UI na změny (přidání/odebrání)
-using System.ComponentModel;                    // ICollectionView, SortDescription
-using System.Linq;                               // OrderBy, ToList
-using System.Windows;                           // Window, MessageBox
-using System.Windows.Data;                      // CollectionViewSource
+using System.Collections.ObjectModel;          // ObservableCollection = kolekce, která umí UI oznámit, že se přidala/odebrala položka
+using System.ComponentModel;                   // ICollectionView, SortDescription – pro řazení/filtraci nad kolekcí
+using System.Linq;                             // LINQ rozšíření: OrderBy, ToList
+using System.Windows;                          // Základní WPF typy (Window, MessageBox, ...)
+using System.Windows.Data;                     // CollectionViewSource.GetDefaultView(...)
+using WpfApp1.Data;                            // Naše datová vrstva: Student a StudentContext (EF Core)
 
 namespace DatabazeVipis
 {
+    // partial = část třídy vygenerovaná z XAML (InitializeComponent) + tato „code-behind“ část
+    // Window   = základní WPF okno
     public partial class MainWindow : Window
     {
-        // Dlouho-žijící kontext – drží připojení k DB a sleduje změny entit.
+        // Dlouho-žijící EF Core kontext.
+        // Drží spojení na LocalDB, sleduje změny entit a umožňuje SaveChanges/Dispose.
         private readonly StudentContext _db = new StudentContext();
 
-        // Kolekce, na kterou je navázaný DataGrid (živé aktualizace v UI).
+        // Datová kolekce navázaná na DataGrid v XAMLu (StudentsGrid).
+        // ObservableCollection zajistí, že přidání/odebrání položky se okamžitě projeví v UI.
         private readonly ObservableCollection<Student> _students = new ObservableCollection<Student>();
 
-        // "Obal" nad kolekcí – umožní řazení/filtraci/aktuální řádek.
+        // Pohled nad kolekcí (view) – umožní setřídit (případně filtrovat) data pro DataGrid.
         private ICollectionView _studentsView;
 
+        // Konstruktor okna – proběhne při vytvoření instance MainWindow.
         public MainWindow()
         {
-            InitializeComponent();                     // vytvoří vizuální prvky z XAMLu
+            // Vytvoří vizuální prvky definované v MainWindow.xaml a přiřadí jim jména/události.
+            InitializeComponent();
 
-            _db.EnsureCreatedAndSeed();                // vytvoří DB a naplní 10 záznamy při prvním běhu
+            // 1) Zajisti, že DB existuje a je (při prázdné tabulce) naplněná 10 vzorovými záznamy.
+            _db.EnsureCreatedAndSeed();
 
-            // Načtení dat do kolekce (používáme tracking – bez AsNoTracking – budeme později editovat).
+            // 2) Načti data ze StudentContextu do ObservableCollection.
+            //    - OrderBy(x => x.Id) ... řadíme vzestupně podle ID
+            //    - ToList()          ... zhmotní výsledek query (enumerable -> list)
+            //    - foreach           ... položku po položce přidáme do ObservableCollection,
+            //                           aby UI dostalo notifikace a vykreslilo řádky.
             foreach (var s in _db.Students.OrderBy(x => x.Id).ToList())
                 _students.Add(s);
 
-            // Řazení v UI podle Id (vzestupně).
+            // 3) Vytvoř "view" nad kolekcí, abychom mohli řídit řazení (případně filtrování).
             _studentsView = CollectionViewSource.GetDefaultView(_students);
-            _studentsView.SortDescriptions.Clear();
-            _studentsView.SortDescriptions.Add(new SortDescription(nameof(Student.Id), ListSortDirection.Ascending));
 
-            // Propojit DataGrid se zdrojem dat.
+            // Pro jistotu smažeme případná předchozí řazení (když by se kód volal opakovaně).
+            _studentsView.SortDescriptions.Clear();
+
+            // Nastavíme řazení podle vlastnosti "Id" vzestupně (Ascending).
+            _studentsView.SortDescriptions.Add(
+                new SortDescription(nameof(Student.Id), ListSortDirection.Ascending)
+            );
+
+            // 4) Napojíme DataGrid (StudentsGrid v XAMLu) na náš "view" jako zdroj dat.
+            //    StudentsGrid je element v XAMLu s x:Name="StudentsGrid".
             StudentsGrid.ItemsSource = _studentsView;
         }
 
-        // Při zavření okna korektně ukončíme DB připojení.
+        // Správné uvolnění prostředků při zavření okna (např. uvolnit DB spojení).
         protected override void OnClosed(System.EventArgs e)
         {
+            // Uvolní EF Core kontext (Dispose uzavře spojení a vyčistí unmanaged prostředky).
             _db.Dispose();
+
+            // Zavoláme implementaci předka (Window) – standardní dočistění v rámci WPF.
             base.OnClosed(e);
         }
     }
 }
+
 ```
 
 > **Stav po ÚKOLU 1:** Aplikace zobrazí 10 studentů z LocalDB v tabulce (jen pro čtení).
