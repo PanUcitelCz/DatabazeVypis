@@ -46,7 +46,7 @@
 
 1) **Create project**  
    - **File ▸ New ▸ Project…**  
-   - Šablona **WPF App** (.NET).  
+   - Šablona **WPF Application** (.NET).  
    - Project name: `DatabazeVipis` (bez diakritiky a mezer).  
    - Framework: **.NET 9.0**.  
    - **Place solution and project in the same directory**: libovolně (doporučeno **ON** u malých projektů).
