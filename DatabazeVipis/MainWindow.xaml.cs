@@ -1,4 +1,4 @@
-﻿using DatabazeVipis.Data;
+﻿using DatabazeVypis.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.ObjectModel;
@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 
-namespace DatabazeVipis
+namespace DatabazeVypis
 {
     public partial class MainWindow : Window
     {

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DatabazeVipis.Data
+namespace DatabazeVypis.Data
 {
     public class StudentContext : DbContext
     {

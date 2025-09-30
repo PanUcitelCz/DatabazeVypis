@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using PropertyChanged; // díky NuGet balíčku PropertyChanged.Fody
 
-namespace DatabazeVipis.Data
+namespace DatabazeVypis.Data
 {
     // Fody zařídí INotifyPropertyChanged "magicky" při překladu
     [AddINotifyPropertyChangedInterface]
